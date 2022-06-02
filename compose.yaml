@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: mentira
+      POSTGRES_PASSWORD: mentira
+      POSTGRES_DB: mentira
+    volumes:
+      - ./sql/create-db.sql:/docker-entrypoint-initdb.d/create-db.sql:ro
+    ports:
+      - 5432:5432
