@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -19,15 +22,26 @@ type Mentira struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	connStr := fmt.Sprintf("postgres://%s:%s@localhost/%s?sslmode=disable",
-		"mentira",
-		"mentira",
-		"mentira")
+	dbHost := getenv("DB_HOST", "localhost")
+	dbPort := getenv("DB_PORT", "5432")
+	dbUser := getenv("DB_USER", "mentira")
+	dbPass := getenv("DB_PASS", "mentira")
+	dbName := getenv("DB_NAME", "mentira")
+
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbHost, dbPort, dbName)
 	openDbConnection(connStr)
 
 	http.HandleFunc("/_/create", createHandler)
 	http.HandleFunc("/", redirectHandler)
 	panic(http.ListenAndServe(":8000", nil))
+}
+
+func getenv(key string, fallback string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		value = fallback
+	}
+	return value
 }
 
 var db *sql.DB
@@ -42,6 +56,15 @@ func openDbConnection(connStr string) {
 	if err != nil {
 		panic(err)
 	}
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-ch
+		db.Close()
+		fmt.Println("Closed connection, Walison!!")
+		os.Exit(0)
+	}()
 }
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
