@@ -31,6 +31,7 @@ func main() {
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbHost, dbPort, dbName)
 	openDbConnection(connStr)
 
+	http.HandleFunc("/_/health", healthHandler)
 	http.HandleFunc("/_/create", createHandler)
 	http.HandleFunc("/", redirectHandler)
 	panic(http.ListenAndServe(":8000", nil))
@@ -65,6 +66,11 @@ func openDbConnection(connStr string) {
 		fmt.Println("Closed connection, Walison!!")
 		os.Exit(0)
 	}()
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"status":"ok"}`))
 }
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
