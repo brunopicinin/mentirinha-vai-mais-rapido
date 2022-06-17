@@ -100,6 +100,10 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 	row := db.QueryRow("SELECT * FROM mentira WHERE code = $1", code)
 	err := row.Scan(&mentira.ID, &mentira.Code, &mentira.URL)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
 		panic(err)
 	}
 
