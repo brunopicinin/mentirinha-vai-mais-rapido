@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -14,9 +15,9 @@ import (
 )
 
 type Mentira struct {
-	ID   int64
-	Code string
-	URL  string
+	ID   int64  `json:"id"`
+	Code string `json:"code"`
+	URL  string `json:"url"`
 }
 
 func main() {
@@ -77,10 +78,21 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
 	code := generateCode(6)
 
-	_, err := db.Exec("INSERT INTO mentira (code, url) VALUES ($1, $2)", code, url)
+	var id int64
+	err := db.QueryRow("INSERT INTO mentira (code, url) VALUES ($1, $2) RETURNING id", code, url).Scan(&id)
 	if err != nil {
 		panic(err)
 	}
+
+	mentira := Mentira{ID: id, Code: code, URL: url}
+	resp, err := json.Marshal(mentira)
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
 }
 
 var validCodeChars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
